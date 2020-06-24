@@ -2,8 +2,8 @@
 #include <Adafruit_NeoMatrix.h>
 #include <Adafruit_NeoPixel.h>
 
-#define MATRIX_PIN 6
-#define MIC_PIN 9
+#define MATRIX_PIN 10
+#define MIC_PIN 6
 #define MIC_SAMPLES 128
 #define LED_BRIGHTNESS 255
 
@@ -72,24 +72,19 @@ void setup() {
 
 int smileFrameCount = 0;
 
-// Input a value 0 to 255 to get a color value.
-// The colours are a transition r - g - b - back to r.
-uint32_t Wheel(byte WheelPos)
-{
-  WheelPos = 255 - WheelPos;
-  if(WheelPos < 85)
-  {
-    return matrix.Color(255 - WheelPos * 3, 0, WheelPos * 3);
+uint32_t colorWheel(byte wheelPositionition) {
+  wheelPosition = 255 - wheelPosition;
+
+  if (wheelPosition < 85) {
+    return matrix.Color(255 - wheelPosition * 3, 0, wheelPosition * 3);
   }
-  else if(WheelPos < 170)
-  {
-    WheelPos -= 85;
-    return matrix.Color(0, WheelPos * 3, 255 - WheelPos * 3);
+  else if (wheelPosition < 170) {
+    wheelPosition -= 85;
+    return matrix.Color(0, wheelPosition * 3, 255 - wheelPosition * 3);
   }
-  else
-  {
-    WheelPos -= 170;
-    return matrix.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
+  else {
+    wheelPosition -= 170;
+    return matrix.Color(wheelPosition * 3, 255 - wheelPosition * 3, 0);
   }
 }
 
@@ -98,7 +93,7 @@ void smile() {
     for (int x = 0; x < 8; x++) {
       for (int y = 0; y < 8; y++) {
         if (MOUTH[4][x][y]) {
-          matrix.drawPixel(x, y, Wheel(c));
+          matrix.drawPixel(x, y, colorWheel(c));
         } else {
           matrix.drawPixel(x, y, matrix.Color(0,0,0));
         }
@@ -151,7 +146,7 @@ void loop() {
   matrix.show();
 
   if (level == 4) {
-  //   smile();
+    smile();
     delay(2000);
   }
 }
