@@ -3,9 +3,12 @@
 #include <Adafruit_NeoPixel.h>
 
 #define MATRIX_PIN 10
-#define MIC_PIN 6
-#define MIC_SAMPLES 128
-#define LED_BRIGHTNESS 255
+#define MIC_PIN A7
+#define MIC_SAMPLES 50
+#define LED_BRIGHTNESS 150
+#define ONBOARD_PIXEL 8
+
+const bool isMEMSMic = true;
 
 const bool MOUTH[5][8][8] = {
   {
@@ -64,15 +67,20 @@ Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(8, 8, MATRIX_PIN,
   NEO_MATRIX_TOP     + NEO_MATRIX_RIGHT +
   NEO_MATRIX_COLUMNS + NEO_MATRIX_ZIGZAG,
   NEO_GRB            + NEO_KHZ800);
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(1, ONBOARD_PIXEL, NEO_GRB + NEO_KHZ800);
+
+int lowLevel = 1024;
+int highLevel = 0;
 
 void setup() {
-  matrix.begin();
   Serial.begin(9600);
+
+  matrix.begin();
 }
 
 int smileFrameCount = 0;
 
-uint32_t colorWheel(byte wheelPositionition) {
+uint32_t colorWheel(byte wheelPosition) {
   wheelPosition = 255 - wheelPosition;
 
   if (wheelPosition < 85) {
@@ -103,36 +111,57 @@ void smile() {
   }
 }
 
-void loop() {
-  int level = 0;
-  int rawLevel = 0;
-  int maxSampledLevel = 0;
+float findPeakToPeakVolume() {
+   unsigned int peakToPeakAmplitude = 0; 
 
-  for (int i = 0; i < MIC_SAMPLES; i++) {
-    auto rawLevel = abs(analogRead(MIC_PIN));
+   unsigned int maxAmplitude = 0;
+   unsigned int minAmplitude = 1023;
+   int micLevel;
 
-    maxSampledLevel = max(rawLevel, maxSampledLevel);
-  }
+   for (int i = 0; i < MIC_SAMPLES; i++) { 
+      micLevel = analogRead(MIC_PIN);
 
-  auto normalizedSample = maxSampledLevel;
+      if (micLevel < 1023) {
+        if (micLevel > maxAmplitude) {
+          maxAmplitude = micLevel;
+        } else if (micLevel < minAmplitude) {
+          minAmplitude = micLevel;
+        }
+      }
+   }
 
-  if (normalizedSample < 500) normalizedSample = 500;
-  if (normalizedSample > 1000) normalizedSample = 1000;
+  peakToPeakAmplitude = maxAmplitude - minAmplitude;
+  float volume = map(peakToPeakAmplitude*3.3, 0, 1024, 0, 1);
 
-  level = map(normalizedSample, 500, 1000, 0, 3);
-
-  Serial.print(level);
+  Serial.print(minAmplitude);
   Serial.print(' ');
-  Serial.println(maxSampledLevel);
+  Serial.print(maxAmplitude);
+  Serial.print(' ');
+  Serial.print(peakToPeakAmplitude);
+  Serial.print(' ');
+  Serial.println(volume);
 
-  if (maxSampledLevel == 1022) {
-    if (smileFrameCount++ > 5) {
-      level = 4;
-      smileFrameCount = 0;
-    }
-  } else {
-    smileFrameCount = 0;
-  }
+  return volume;   
+}
+
+void loop() {
+
+  int level = 0;
+  int sampleLevel = findPeakToPeakVolume();
+  level = map(sampleLevel, 0, 1, 0, 3);
+
+  // Serial.print(level);
+  // Serial.print(' ');
+  // Serial.println(sampleLevel);
+
+  // if (sampleLevel == 1022) {
+  //   if (smileFrameCount++ > 5) {
+  //     level = 4;
+  //     smileFrameCount = 0;
+  //   }
+  // } else {
+  //   smileFrameCount = 0;
+  // }
 
   for (int x = 0; x < 8; x++) {
     for (int y = 0; y < 8; y++) {
