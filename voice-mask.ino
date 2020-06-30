@@ -92,11 +92,8 @@ void setup() {
   matrix.begin();
 }
 
-int smileFrameCount = 0;
-
+// Spin through a rainbow of colors
 uint32_t colorWheel(byte wheelPosition) {
-  // wheelPosition = 255 - wheelPosition;
-
   if (wheelPosition < 85) {
     return matrix.Color(255 - wheelPosition * 3, 0, wheelPosition * 3);
   }
@@ -110,6 +107,7 @@ uint32_t colorWheel(byte wheelPosition) {
   }
 }
 
+// Display a colorful smiling face
 void smile() {
   for (int c = 0; c < 256; c++) {
     for (int x = 0; x < 8; x++) {
@@ -127,11 +125,13 @@ void smile() {
 }
 
 int micLevel;
+int smileFrameCount = 0;
 unsigned int maxAmplitude;
 unsigned int minAmplitude;
 unsigned int peakToPeakAmplitude; 
 unsigned long startTime;
 
+// Get mic volume
 float findPeakToPeakVolume() {
   maxAmplitude = 0;
   minAmplitude = MAX_ANALOG_INPUT;
@@ -139,7 +139,7 @@ float findPeakToPeakVolume() {
 
   startTime = millis();
 
-  // for (int i = 0; i < MIC_SAMPLES; i++) { 
+  // Sample the mic for a period of time
   while (millis() - startTime < MIC_SAMPLE_TIME) {
     micLevel = analogRead(MIC_PIN);
 
@@ -154,11 +154,11 @@ float findPeakToPeakVolume() {
 
   peakToPeakAmplitude = maxAmplitude - minAmplitude;
 
-  Serial.print(minAmplitude);
-  Serial.print(' ');
-  Serial.print(maxAmplitude);
-  Serial.print(' ');
-  Serial.println(peakToPeakAmplitude);
+  // Serial.print(minAmplitude);
+  // Serial.print(' ');
+  // Serial.print(maxAmplitude);
+  // Serial.print(' ');
+  // Serial.println(peakToPeakAmplitude);
 
   return peakToPeakAmplitude;   
 }
@@ -170,16 +170,20 @@ const int MAX_NORMAL_SPEECH = 30;
 void loop() {
   sampleLevel = findPeakToPeakVolume();
 
+  // Cap the mic input to a maximum level (found through testing)
   if (sampleLevel > MAX_NORMAL_SPEECH) sampleLevel = MAX_NORMAL_SPEECH;
 
+  // Scale the volume to a number from 0-4 to determine which mouth shape to show
   scaledLevel = map(sampleLevel, 0, MAX_NORMAL_SPEECH, 0, 4);
 
   // Serial.print(level);
   // Serial.print(' ');
   // Serial.println(sampleLevel);
 
+  // Determine we're smiling by looking for max volume for 5 sample frames
   if (sampleLevel == MAX_NORMAL_SPEECH) {
     if (smileFrameCount++ > 5) {
+      // Show the smile instead
       // scaledLevel = 5;
       smileFrameCount = 0;
     }
@@ -187,6 +191,7 @@ void loop() {
     smileFrameCount = 0;
   }
 
+  // Draw the matrix
   for (int x = 0; x < 8; x++) {
     for (int y = 0; y < 8; y++) {
       if (MOUTH[scaledLevel][x][y]) {
@@ -198,6 +203,7 @@ void loop() {
   }
   matrix.show();
 
+  // Run the smile color wheel decoration if we're smiling
   // if (scaledLevel == 5) {
   //   smile();
   // }
